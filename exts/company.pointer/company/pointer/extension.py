@@ -3,8 +3,7 @@ import omni.ui as ui
 import logging
 import time
 from pxr import UsdGeom
-import threading 
-import json
+import threading # type: ignore
 import os
 
 
@@ -45,8 +44,8 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                     self._stop_transform_polling()
                     self._remove_file_if_exists()
 
-                ui.Button("Add Sphere", clicked_fn=add_sphere)
-                ui.Button("Delete Sphere", clicked_fn=delete_sphere)
+                ui.Button("Add avatar", clicked_fn=add_sphere)
+                ui.Button("Delete avatar", clicked_fn=delete_sphere)
 
     def _start_transform_polling(self):
         """Starts the polling thread for tracking sphere transforms."""
@@ -68,7 +67,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         """Polls the sphere's transform to check for changes."""
         while self._polling_active:
             time.sleep(1)  # Poll every second
-            logging.warning("HELLO")
+            logging.warning("Scanning...")
             self._check_sphere_transform()
 
     def _check_sphere_transform(self):
