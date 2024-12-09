@@ -27,22 +27,25 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         with self._window.frame:
             with ui.VStack():
                 def add_sphere():
-                    logging.warning("Add Sphere button clicked.")
+                    logging.warning("Add avatar button clicked.")
                     if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
-                        logging.warning("Sphere already exists.")
+                        logging.warning("Avatar already exists.")
                         return
                     omni.kit.commands.execute('CreatePrimWithDefaultXform',
                                               prim_type='Sphere',
                                               attributes={'radius': 50.0})
-                    logging.warning("Sphere created.")
+                    logging.warning("Avatar created.")
                     self._start_transform_polling()
 
                 def delete_sphere():
-                    logging.warning("Delete Sphere button clicked.")
-                    omni.kit.commands.execute('DeletePrims', paths=[self._sphere_path])
-                    logging.warning("Sphere deleted.")
-                    self._stop_transform_polling()
-                    self._remove_file_if_exists()
+                    logging.warning("Delete avatar button clicked.")
+                    if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
+                        omni.kit.commands.execute('DeletePrims', paths=[self._sphere_path])
+                        logging.warning("Avatar deleted.")
+                        self._stop_transform_polling()
+                        self._remove_file_if_exists()
+                    else:
+                        logging.warning("Avatar doesn't exist.")
 
                 ui.Button("Add avatar", clicked_fn=add_sphere)
                 ui.Button("Delete avatar", clicked_fn=delete_sphere)
@@ -83,7 +86,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # If the position has changed, log and send the data
             if self._last_position is None or position != self._last_position:
                 self._last_position = position
-                logging.warning(f"Sphere moved! New position: {position}")
+                logging.warning(f"Avatar moved! New position: {position}")
                 self._send_data_to_backend(position)
 
 
@@ -100,10 +103,10 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # Open the text file in append mode and write the position
             with open(text_file_path, "a") as file:
                 if self._flag == False:
-                    file.write(f"Sphere created at position: {formatted_position}\n")
+                    file.write(f"Avatar created at position: {formatted_position}\n")
                     self._flag = True
                 else:
-                    file.write(f"Sphere moved at position: {formatted_position}\n")
+                    file.write(f"Avatar moved at position: {formatted_position}\n")
             logging.warning(f"Position logged to {text_file_path}: {formatted_position}")
         except PermissionError as e:
             logging.error(f"PermissionError: Unable to write to {text_file_path}. Details: {e}")
