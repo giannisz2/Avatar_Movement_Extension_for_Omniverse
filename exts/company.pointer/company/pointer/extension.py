@@ -12,8 +12,9 @@ class SphereTransformListenerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         logging.warning("SphereTransformListenerExtension: Extension startup.")
         
-        self._sphere_path = "/World/Sphere"
+        self._sphere_path = None
         self._stage = omni.usd.get_context().get_stage()
+        
 
         # Store the initial position of the sphere
         self._last_position = None
@@ -29,12 +30,14 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             with ui.VStack():
                 def add_sphere():
                     logging.warning("Add avatar button clicked.")
-                    if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
-                        logging.warning("Avatar already exists.")
-                        return
+                    logging.warning(self._stage)
+                    # if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
+                    #     logging.warning("Avatar already exists.")
+                    #     return
                     omni.kit.commands.execute('CreatePrimWithDefaultXform',
                                               prim_type='Sphere',
                                               attributes={'radius': 50.0})
+                    self._sphere_path = "/World/Sphere"
                     logging.warning("Avatar created.")
                     self._start_transform_polling()
 
@@ -89,6 +92,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                 self._last_position = position
                 logging.warning(f"Avatar moved! New position: {position}")
                 self._send_data_to_backend(position)
+                
 
 
     def _send_data_to_backend(self, position):
