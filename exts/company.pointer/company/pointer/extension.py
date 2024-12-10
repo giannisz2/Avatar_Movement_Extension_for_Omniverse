@@ -6,6 +6,7 @@ from pxr import UsdGeom
 import threading # type: ignore
 import os
 import omni.kit.commands
+import json
 
 
 class SphereTransformListenerExtension(omni.ext.IExt):
@@ -20,7 +21,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         self._last_position = None
         self._polling_active = False  # Control flag for the polling thread
         self._poll_thread = None  # Reference to the polling thread
-        self._text_file_path = os.path.join(os.path.expanduser("~/Documents"), "sphere_transform_data.txt")
+        self._text_file_path = os.path.join(os.path.expanduser("~/Documents"), "sphere_transform_data.json")
         self._flag = False
 
 
@@ -96,27 +97,47 @@ class SphereTransformListenerExtension(omni.ext.IExt):
 
 
     def _send_data_to_backend(self, position):
-        """Writes the sphere's position to a plain text file with three-digit accuracy."""
+        """Writes the sphere's position to a JSON file."""
+
         # Construct the file path
-        directory = os.path.expanduser("~/Documents")  # Use the Documents folder for better accessibility
-        text_file_path = os.path.join(directory, "sphere_transform_data.txt")
+        directory = os.path.expanduser("~/Documents")
+        json_file_path = os.path.join(directory, "sphere_transform_data.json")
 
         try:
             # Format position values to three decimal places
             formatted_position = tuple(round(coord, 3) for coord in position)
 
-            # Open the text file in append mode and write the position
-            with open(text_file_path, "a") as file:
-                if self._flag == False:
-                    file.write(f"Avatar created at position: {formatted_position}\n")
-                    self._flag = True
+            # Load existing data or initialize with an empty list
+            data = []
+            if os.path.exists(json_file_path):
+                # Check if file is empty
+                if os.path.getsize(json_file_path) > 0:
+                    try:
+                        with open(json_file_path, "r") as file:
+                            data = json.load(file)  # Load existing JSON data
+                    except json.JSONDecodeError:
+                        logging.warning(f"File {json_file_path} contains invalid JSON. Reinitializing.")
                 else:
-                    file.write(f"Avatar moved at position: {formatted_position}\n")
-            logging.warning(f"Position logged to {text_file_path}: {formatted_position}")
+                    logging.warning(f"File {json_file_path} is empty. Initializing with an empty list.")
+
+            # Append the new position data
+            entry = {
+                "action": "created" if not self._flag else "moved",
+                "position": formatted_position
+            }
+            data.append(entry)
+            self._flag = True
+
+            # Write updated data back to the file
+            with open(json_file_path, "w") as file:
+                json.dump(data, file, indent=4)
+
+            logging.warning(f"Position logged to {json_file_path}: {formatted_position}")
         except PermissionError as e:
-            logging.error(f"PermissionError: Unable to write to {text_file_path}. Details: {e}")
+            logging.error(f"PermissionError: Unable to write to {json_file_path}. Details: {e}")
         except Exception as e:
-            logging.error(f"Unexpected error while writing to {text_file_path}: {e}")
+            logging.error(f"Unexpected error while writing to {json_file_path}: {e}")
+
     
     def _remove_file_if_exists(self):
         """Removes the file if it exists."""
