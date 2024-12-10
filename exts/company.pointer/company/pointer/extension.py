@@ -5,6 +5,7 @@ import time
 from pxr import UsdGeom
 import threading # type: ignore
 import os
+import omni.kit.commands
 
 
 class SphereTransformListenerExtension(omni.ext.IExt):
