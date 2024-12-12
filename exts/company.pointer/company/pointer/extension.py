@@ -17,10 +17,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         self._sphere_path = None
         self._stage = omni.usd.get_context().get_stage()
         print(self._stage)
-        
-
-        # Store the initial position of the sphere
-        self._last_position = None
+        self._last_position = None # Store the initial position of the sphere
         self._polling_active = False  # Control flag for the polling thread
         self._poll_thread = None  # Reference to the polling thread
         self._text_file_path = os.path.join(os.path.expanduser("~/Documents"), "sphere_transform_data.json")
