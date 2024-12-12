@@ -24,7 +24,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         self._polling_active = False  # Control flag for the polling thread
         self._poll_thread = None  # Reference to the polling thread
         self._text_file_path = os.path.join(os.path.expanduser("~/Documents"), "sphere_transform_data.json")
-        self._flag = False
+        self._flag = False #Flag to check if it's the first time we add something to JSON file
 
 
         # Setup UI
@@ -34,9 +34,9 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                 def add_sphere():
                     logging.warning("Add avatar button clicked.")
                     logging.warning(self._stage)
-                    # if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
-                    #     logging.warning("Avatar already exists.")
-                    #     return
+                    if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
+                        logging.warning("Avatar already exists.")
+                        return
                     omni.kit.commands.execute('CreatePrimWithDefaultXform',
                                               prim_type='Sphere',
                                               attributes={'radius': 50.0})
@@ -61,7 +61,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
 
                 ui.Button("Add avatar", clicked_fn=add_sphere)
                 ui.Button("Delete avatar", clicked_fn=delete_sphere)
-                self._slider = ui.IntSlider(min=0,max=10,name="Acuraccy")
+                self._slider = ui.IntSlider(min=1,max=10,name="Acuraccy")
                 self._data_display = ui.Label("Data will appear here.")
         
         
@@ -121,8 +121,8 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # Safely fetch the slider value for accuracy
             accuracy = self._slider.model.as_int if self._slider else None
             if accuracy is None:
-                logging.warning("Accuracy slider value is not available. Setting to default (0).")
-                accuracy = 0
+                logging.warning("Accuracy slider value is not available. Setting to default (1).")
+                accuracy = 1
 
             # Load existing data or initialize with an empty list
             data = []
@@ -189,7 +189,6 @@ class SphereTransformListenerExtension(omni.ext.IExt):
 
     def _show_message_in_ui(self, message):
         """Displays a message in the UI."""
-        # Clear and display the message in a Text widget
         if not hasattr(self, "_data_display"):
             self._data_display = ui.Label(message)
         else:
