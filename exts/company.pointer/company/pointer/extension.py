@@ -13,7 +13,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         logging.warning("SphereTransformListenerExtension: Extension startup.")
         
-        self.slider = None
+        self._slider = None
         self._sphere_path = None
         self._stage = omni.usd.get_context().get_stage()
         print(self._stage)
