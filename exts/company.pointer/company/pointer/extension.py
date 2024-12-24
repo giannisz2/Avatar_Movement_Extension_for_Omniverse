@@ -2,7 +2,7 @@ import omni.ext
 import omni.ui as ui
 import logging
 import time
-from pxr import UsdGeom
+from pxr import UsdGeom, Gf
 import threading # type: ignore
 import os
 import omni.kit.commands
@@ -13,33 +13,50 @@ class SphereTransformListenerExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         logging.warning("SphereTransformListenerExtension: Extension startup.")
         
-        self._slider = None
+        self.slider = None
         self._sphere_path = None
         self._stage = omni.usd.get_context().get_stage()
-        print(self._stage)
-        self._last_position = None # Store the initial position of the sphere
+        
+
+        # Store the initial position of the sphere
+        self._last_position = None
         self._polling_active = False  # Control flag for the polling thread
         self._poll_thread = None  # Reference to the polling thread
         self._text_file_path = os.path.join(os.path.expanduser("~/Documents"), "sphere_transform_data.json")
-        self._flag = False #Flag to check if it's the first time we add something to JSON file
+        self._flag = False
 
 
         # Setup UI
         self._window = ui.Window("Location Listener", width=300, height=300)
         with self._window.frame:
             with ui.VStack():
+
                 def add_sphere():
                     logging.warning("Add avatar button clicked.")
                     logging.warning(self._stage)
-                    if self._stage.GetPrimAtPath(self._sphere_path).IsValid():
-                        logging.warning("Avatar already exists.")
-                        return
+                    
+                    start_position = Gf.Vec3d(200.0, 200.0, 0.0)
+                    
+                    # Create the sphere
                     omni.kit.commands.execute('CreatePrimWithDefaultXform',
-                                              prim_type='Sphere',
-                                              attributes={'radius': 50.0})
+                                            prim_type='Sphere',
+                                            attributes={'radius': 50.0})
+                    
+                    # Get the path to the created sphere
                     self._sphere_path = "/World/Sphere"
-                    logging.warning("Avatar created.")
+                    sphere_prim = self._stage.GetPrimAtPath(self._sphere_path)
+                    
+                    if sphere_prim.IsValid():
+                        xform = UsdGeom.XformCommonAPI(sphere_prim)
+
+                        # Set translation
+                        xform.SetTranslate(start_position) 
+                        
+            
+                    
+                    logging.warning("Avatar created at position: %s", start_position)
                     self._start_transform_polling()
+
 
                 def delete_sphere():
                     logging.warning("Delete avatar button clicked.")
@@ -58,7 +75,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
 
                 ui.Button("Add avatar", clicked_fn=add_sphere)
                 ui.Button("Delete avatar", clicked_fn=delete_sphere)
-                self._slider = ui.IntSlider(min=1,max=10,name="Acuraccy")
+                self._slider = ui.IntSlider(min=0,max=10,name="Acuraccy")
                 self._data_display = ui.Label("Data will appear here.")
         
         
@@ -118,8 +135,8 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # Safely fetch the slider value for accuracy
             accuracy = self._slider.model.as_int if self._slider else None
             if accuracy is None:
-                logging.warning("Accuracy slider value is not available. Setting to default (1).")
-                accuracy = 1
+                logging.warning("Accuracy slider value is not available. Setting to default (0).")
+                accuracy = 0
 
             # Load existing data or initialize with an empty list
             data = []
@@ -186,6 +203,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
 
     def _show_message_in_ui(self, message):
         """Displays a message in the UI."""
+        # Clear and display the message in a Text widget
         if not hasattr(self, "_data_display"):
             self._data_display = ui.Label(message)
         else:
