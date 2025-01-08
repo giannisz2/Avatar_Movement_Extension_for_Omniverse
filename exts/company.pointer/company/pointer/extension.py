@@ -7,6 +7,7 @@ import threading # type: ignore
 import os
 import omni.kit.commands
 import json
+import math
 
 
 class SphereTransformListenerExtension(omni.ext.IExt):
@@ -15,6 +16,7 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         
         self.slider = None
         self._sphere_path = None
+        print(self._sphere_path)
         self._stage = omni.usd.get_context().get_stage()
         
 
@@ -122,15 +124,19 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                 
 
 
+   
+
     def _send_data_to_backend(self, position):
-        """Writes the sphere's position and accuracy to a JSON file."""
 
         directory = os.path.expanduser("~/Documents")
         json_file_path = os.path.join(directory, "sphere_transform_data.json")
-
+        
         try:
-            # Format position values to three decimal places
-            formatted_position = tuple(round(coord, 3) for coord in position)
+            # Convert Cartesian coordinates to latitude and longitude
+            x, y, z = position
+            radius = math.sqrt(x**2 + y**2 + z**2)
+            latitude = math.degrees(math.asin(z / radius))
+            longitude = math.degrees(math.atan2(y, x))
 
             # Safely fetch the slider value for accuracy
             accuracy = self._slider.model.as_int if self._slider else None
@@ -141,11 +147,11 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # Load existing data or initialize with an empty list
             data = []
             if os.path.exists(json_file_path):
-                # Check if file is empty
+
                 if os.path.getsize(json_file_path) > 0:
                     try:
                         with open(json_file_path, "r") as file:
-                            data = json.load(file)  # Load existing JSON data
+                            data = json.load(file)
                     except json.JSONDecodeError:
                         logging.warning(f"File {json_file_path} is invalid.")
                 else:
@@ -154,7 +160,8 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             # Append the new position data
             entry = {
                 "action": "created" if not self._flag else "moved",
-                "position": formatted_position,
+                "longitude": round(longitude, 6),
+                "latitude": round(latitude, 6),
                 "accuracy": accuracy
             }
             data.append(entry)
@@ -164,11 +171,12 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             with open(json_file_path, "w") as file:
                 json.dump(data, file, indent=4)
 
-            logging.warning(f"Position and accuracy logged to {json_file_path}: {formatted_position}, {accuracy}")
+            logging.warning(f"Longitude, latitude, and accuracy logged to {json_file_path}: ({longitude}, {latitude}), {accuracy}")
         except PermissionError as e:
             logging.error(f"PermissionError: Unable to write to {json_file_path}. Details: {e}")
         except Exception as e:
             logging.error(f"Unexpected error while writing to {json_file_path}: {e}")
+
 
     def _receive_data_from_backend(self):
         """Reads data from the JSON file and updates the UI label."""
@@ -182,10 +190,14 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                     data = json.load(file)  # Load existing JSON data
                 
                 # Format and append the data to the label's text
-                display_entries = getattr(self, "_display_entries", [])  # Get current display entries or initialize
+                display_entries = getattr(self, "_display_entries", []) 
                 
                 for entry in data[-7:]:  # Get the last 7 entries from the JSON file
-                    message = f"{entry['action']} at {entry['position']}, accuracy: {entry.get('accuracy', 'N/A')}"
+                    longitude = entry.get('longitude', 'N/A')
+                    latitude = entry.get('latitude', 'N/A')
+                    accuracy = entry.get('accuracy', 'N/A')
+                    action = entry.get('action', 'Unknown')
+                    message = f"{action}: Longitude {longitude}, Latitude {latitude}, Accuracy {accuracy}"
                     display_entries.append(message)
                 
                 # Keep only the last 7 entries
@@ -200,14 +212,6 @@ class SphereTransformListenerExtension(omni.ext.IExt):
             logging.error(f"Error reading JSON file: {e}")
             self._data_display.text = "Error reading data."
 
-
-    def _show_message_in_ui(self, message):
-        """Displays a message in the UI."""
-        # Clear and display the message in a Text widget
-        if not hasattr(self, "_data_display"):
-            self._data_display = ui.Label(message)
-        else:
-            self._data_display.text = message
 
     
     def _remove_file_if_exists(self):
