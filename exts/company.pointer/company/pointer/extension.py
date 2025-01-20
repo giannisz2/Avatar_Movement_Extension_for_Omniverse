@@ -2,6 +2,7 @@ import omni.ext
 import omni.ui as ui
 import logging
 import time
+import omni.usd
 from pxr import UsdGeom, Gf
 import threading # type: ignore
 import os
@@ -16,7 +17,6 @@ class SphereTransformListenerExtension(omni.ext.IExt):
         
         self.slider = None
         self._sphere_path = None
-        print(self._sphere_path)
         self._stage = omni.usd.get_context().get_stage()
         
 
@@ -37,7 +37,9 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                     logging.warning("Add avatar button clicked.")
                     logging.warning(self._stage)
                     
-                    start_position = Gf.Vec3d(200.0, 200.0, 0.0)
+                    # Define the starting position and scale
+                    start_position = Gf.Vec3d(200.0, 200.0, 150.0)
+                    scale_value = Gf.Vec3d(25.0, 25.0, 25.0)
                     
                     # Create the sphere
                     omni.kit.commands.execute('CreatePrimWithDefaultXform',
@@ -54,10 +56,14 @@ class SphereTransformListenerExtension(omni.ext.IExt):
                         # Set translation
                         xform.SetTranslate(start_position) 
                         
-            
+                        # Set the scale
+                        scale_attr = sphere_prim.GetAttribute("xformOp:scale")
+                        scale_attr.Set(scale_value) 
+                        
+                        logging.warning("Avatar created at position: %s with scale: %s", start_position, scale_value)
                     
-                    logging.warning("Avatar created at position: %s", start_position)
                     self._start_transform_polling()
+
 
 
                 def delete_sphere():
